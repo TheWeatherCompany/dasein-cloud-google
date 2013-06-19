@@ -35,15 +35,7 @@ import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
-import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.Volume;
-import org.dasein.cloud.compute.VolumeCreateOptions;
-import org.dasein.cloud.compute.VolumeFilterOptions;
-import org.dasein.cloud.compute.VolumeFormat;
-import org.dasein.cloud.compute.VolumeProduct;
-import org.dasein.cloud.compute.VolumeState;
-import org.dasein.cloud.compute.VolumeSupport;
-import org.dasein.cloud.compute.VolumeType;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.google.Google;
 import org.dasein.cloud.google.GoogleException;
 import org.dasein.cloud.google.GoogleMethod;
@@ -60,15 +52,18 @@ import org.apache.log4j.Logger;
 /**
  * Implements the volume services supported in the Google API.
  * @author INSERT NAME HERE
- * @version 2013.01 initial version
+ * @version 2013.04 initial version
  * @since 2013.01
  */
-public class GoogleDiskSupport implements VolumeSupport {
+public class GoogleDiskSupport extends AbstractVolumeSupport {
 	static private final Logger logger = Google.getLogger(GoogleDiskSupport.class);
 
 	private Google provider;
 
-	public GoogleDiskSupport(Google provider) {	this.provider = provider; }
+	public GoogleDiskSupport(Google provider) {
+        super(provider);
+        this.provider = provider;
+    }
 
 	@Override
 	public String[] mapServiceAction(ServiceAction action) {
@@ -79,17 +74,6 @@ public class GoogleDiskSupport implements VolumeSupport {
 	public void attach(String volumeId, String toServer, String deviceId)
 			throws InternalException, CloudException {
 		throw new OperationNotSupportedException("Google does not support attaching volumes to an instance");
-	}
-
-	@Override
-	public String create(String fromSnapshot, int sizeInGb, String inZone)
-			throws InternalException, CloudException {
-		if( fromSnapshot != null ) {
-			return createVolume(VolumeCreateOptions.getInstanceForSnapshot(fromSnapshot, new Storage<Gigabyte>(sizeInGb, Storage.GIGABYTE), "dsn-auto-volume", "dsn-auto-volume").inDataCenter(inZone));
-		}
-		else {
-			return createVolume(VolumeCreateOptions.getInstance(new Storage<Gigabyte>(sizeInGb, Storage.GIGABYTE), "dsn-auto-volume", "dsn-auto-volume").inDataCenter(inZone));
-		}
 	}
 
 	@Override
@@ -151,12 +135,6 @@ public class GoogleDiskSupport implements VolumeSupport {
 			}
 		}
 		throw new CloudException("create volume operation failed");
-	}
-
-	@Override
-	public void detach(String volumeId) throws InternalException,
-	CloudException {
-		throw new OperationNotSupportedException("Google does not support detach volumes from a running instance");
 	}
 
 	@Override

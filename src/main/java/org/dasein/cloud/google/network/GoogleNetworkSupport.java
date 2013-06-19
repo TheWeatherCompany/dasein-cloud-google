@@ -49,12 +49,15 @@ import org.json.JSONObject;
  * @version 2013.01 initial version
  * @since 2013.01
  */
-public class GoogleNetworkSupport implements VLANSupport {
+public class GoogleNetworkSupport extends AbstractVLANSupport {
 
 	static private final Logger logger = Google.getLogger(GoogleNetworkSupport.class);
 	private Google provider;
 
-	GoogleNetworkSupport(Google cloud) { this.provider = cloud; }
+	public GoogleNetworkSupport(Google cloud) {
+        super(cloud);
+        this.provider = cloud;
+    }
 
 	@Override
 	public String[] mapServiceAction(ServiceAction action) {
@@ -399,8 +402,7 @@ public class GoogleNetworkSupport implements VLANSupport {
 
 
 	@Override
-	public Requirement identifySubnetDCRequirement() throws CloudException,
-	InternalException {
+	public Requirement identifySubnetDCRequirement() {
 		return Requirement.NONE;
 	}
 

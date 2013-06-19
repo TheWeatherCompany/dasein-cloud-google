@@ -37,16 +37,7 @@ import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.ImageCreateOptions;
-import org.dasein.cloud.compute.ImageFilterOptions;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.MachineImageFormat;
-import org.dasein.cloud.compute.MachineImageState;
-import org.dasein.cloud.compute.MachineImageSupport;
-import org.dasein.cloud.compute.MachineImageType;
-import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.google.Google;
 import org.dasein.cloud.google.GoogleMethod;
 import org.dasein.cloud.google.GoogleMethod.Param;
@@ -55,11 +46,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class GoogleImageSupport  implements MachineImageSupport {
+public class GoogleImageSupport  extends AbstractImageSupport {
 	private Google provider;
 	static private final Logger logger = Google.getLogger(GoogleImageSupport.class);
 
-	public GoogleImageSupport(Google provider) { this.provider = provider; }
+	public GoogleImageSupport(Google provider) {
+        super(provider);
+        this.provider = provider;
+    }
 
 	@Override
 	public String[] mapServiceAction(ServiceAction action) {
@@ -96,21 +90,12 @@ public class GoogleImageSupport  implements MachineImageSupport {
 
 	}
 
-	@Override
-	public MachineImage captureImage(ImageCreateOptions options)
-			throws CloudException, InternalException {
-		throw new OperationNotSupportedException("Capturing image of virtual machines not supported");
-	}
+    @Override
+    protected MachineImage capture(@Nonnull ImageCreateOptions options, @Nullable AsynchronousTask<MachineImage> task) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Capturing image of virtual machines not supported");
+    }
 
-	@Override
-	public void captureImageAsync(ImageCreateOptions options,
-			AsynchronousTask<MachineImage> taskTracker) throws CloudException,
-			InternalException {
-		throw new OperationNotSupportedException("Capturing image of virtual machines not supported");
-
-	}
-
-	@Override
+    @Override
 	public MachineImage getImage(String providerImageId) throws CloudException,
 	InternalException {
 
@@ -202,12 +187,6 @@ public class GoogleImageSupport  implements MachineImageSupport {
 	}
 
 	@Override
-	public MachineImage getMachineImage(String providerImageId)
-			throws CloudException, InternalException {
-		return getImage(providerImageId);
-	}
-
-	@Override
 	public String getProviderTermForImage(Locale locale) {
 		return "image";
 	}
@@ -231,13 +210,6 @@ public class GoogleImageSupport  implements MachineImageSupport {
 	public Requirement identifyLocalBundlingRequirement()
 			throws CloudException, InternalException {
 		return Requirement.NONE;
-	}
-
-	@Override
-	public AsynchronousTask<String> imageVirtualMachine(String vmId,
-			String name, String description) throws CloudException,
-			InternalException {
-		throw new OperationNotSupportedException ("Google does not support capturing images");
 	}
 
 	@Override
@@ -505,13 +477,6 @@ public class GoogleImageSupport  implements MachineImageSupport {
 			}
 			return images;
 		}
-	}
-
-	@Override
-	public void shareMachineImage(String providerImageId, String withAccountId,
-			boolean allow) throws CloudException, InternalException {
-		throw new OperationNotSupportedException ("Google does not support sharing images");
-
 	}
 
 	@Override

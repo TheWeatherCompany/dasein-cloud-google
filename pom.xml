@@ -3,7 +3,7 @@
   
   <groupId>org.dasein</groupId>
   <artifactId>dasein-cloud-google</artifactId>
-  <version>2013.07-SNAPSHOT</version>
+  <version>2013.04-SNAPSHOT</version>
   
   <name>Dasein Cloud Google</name>
   <description>
@@ -43,7 +43,7 @@
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07-SNAPSHOT</version>
+        <version>2013.04.1</version>
         <scope>compile</scope>
         <optional>false</optional>
     </dependency>   
@@ -71,7 +71,7 @@
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2013.07-SNAPSHOT</version>
+          <version>2013.04.6</version>
           <scope>test</scope>
           <optional>false</optional>
       </dependency>
@@ -176,11 +176,11 @@
                     <value>${accountNumber}</value>
                 </property>
                 <property>
-                    <name>apiSharedKey</name>
+                    <name>accessPublic</name>
                     <value>${apiSharedKey}</value>
                 </property>
                 <property>
-                    <name>apiSecretKey</name>
+                    <name>accessPrivate</name>
                     <value>${apiSecretKey}</value>
                 </property>
                 <property>
@@ -202,30 +202,6 @@
                 <property>
                     <name>regionId</name>
                     <value>${regionId}</value>
-                </property>
-                <property>
-                    <name>test.region</name>
-                    <value>${test.region}</value>
-                </property>
-                <property>
-                    <name>test.dataCenter</name>
-                    <value>${test.dataCenter}</value>
-                </property>
-                <property>
-                    <name>test.machineImage</name>
-                    <value>${test.machineImage}</value>
-                </property>
-                <property>
-                    <name>test.product</name>
-                    <value>${test.product}</value>
-                </property>
-                <property>
-                    <name>vm.maxLaunchPeriod</name>
-                    <value>${vm.maxLaunchPeriod}</value>
-                </property>
-                <property>
-                    <name>vm.maxChangePeriod</name>
-                    <value>${vm.maxChangePeriod}</value>
                 </property>
             </systemProperties>
             <includes>
