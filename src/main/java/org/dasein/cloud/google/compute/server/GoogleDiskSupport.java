@@ -60,6 +60,12 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 
 	private Google provider;
 
+    private final String EPHEMERAL_DISK = "EPHEMERAL";
+    private final String PERSISTENT_DISK = "PERSISTENT";
+
+    private final String READ_WRITE = "READ_WRITE";
+    private final String READ_ONLY = "READ_ONLY";
+
 	public GoogleDiskSupport(Google provider) {
         super(provider);
         this.provider = provider;
@@ -73,7 +79,47 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 	@Override
 	public void attach(String volumeId, String toServer, String deviceId)
 			throws InternalException, CloudException {
-		throw new OperationNotSupportedException("Google does not support attaching volumes to an instance");
+        ProviderContext ctx = provider.getContext();
+        GoogleMethod method = new GoogleMethod(provider);
+        if (ctx == null) {
+            throw new InternalException("No context was specified for this request");
+        }
+
+        Volume volume = getVolume(volumeId);
+        String diskUrl = volume.getTag("selfLink");
+
+        if (diskUrl != null && diskUrl.length() > 0) {
+            JSONObject payload = new JSONObject();
+
+            try {
+                //TODO will we always attach persistent and read_write disk?
+                payload.put("type", PERSISTENT_DISK);
+                payload.put("mode", READ_WRITE);
+                payload.put("source", diskUrl);
+                if (deviceId != null) {
+                    payload.put("device_name", deviceId);
+                }
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+                logger.error("JSON conversion failed with error : " + e.getLocalizedMessage());
+                throw new CloudException(e);
+            }
+
+            JSONObject response = null;
+            try {
+                response = method.post(GoogleMethod.SERVER+"/"+toServer+"/attachDisk", payload);
+            } catch( GoogleException e ) {
+                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
+                throw new CloudException(e);
+            }
+
+            String status = method.getOperationStatus(GoogleMethod.OPERATION, response);
+            if (status == null || !status.equals("DONE")) {
+                throw new CloudException("attach volume operation failed");
+            }
+        }
 	}
 
 	@Override
@@ -97,6 +143,7 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 				payload.put("sourceSnapshot", method.getEndpoint(ctx, GoogleMethod.SNAPSHOT) + "/" +options.getSnapshotId());
 			} else payload.put("sizeGb", String.valueOf(options.getVolumeSize().getQuantity().intValue()));
 
+			//TODO is this still required as the zone is in the uri?
 			String zone = ctx.getRegionId() + "-a";
 			if(options.getDataCenterId() != null) {
 				zone = options.getDataCenterId();
@@ -140,7 +187,40 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 	@Override
 	public void detach(String volumeId, boolean force)
 			throws InternalException, CloudException {
-		throw new OperationNotSupportedException("Google does not support detach volumes from a running instance");
+		ProviderContext ctx = provider.getContext();
+        GoogleMethod method = new GoogleMethod(provider);
+        if (ctx == null) {
+            throw new InternalException("No context was specified for this request");
+        }
+
+        Volume volume = getVolume(volumeId);
+        if (volume == null) {
+            throw new CloudException("Volume not found with id "+volumeId);
+        }
+
+        String serverId = volume.getProviderVirtualMachineId();
+        if (serverId == null) {
+            throw new CloudException("No server is attached to " + volume.getProviderVolumeId());
+        }
+
+        String deviceName = getDeviceNameForVolume(volumeId, serverId);
+        if (deviceName == null) {
+            throw new CloudException("No device name found for volume "+volumeId+" on server "+serverId);
+        }
+
+        JSONObject response = null;
+        try {
+            response = method.post(GoogleMethod.SERVER+"/"+serverId+"/detachDisk?deviceName="+deviceName, new JSONObject());
+        } catch( GoogleException e ) {
+            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
+            throw new CloudException(e);
+        }
+
+        String status = method.getOperationStatus(GoogleMethod.OPERATION, response);
+        if (status == null || !status.equals("DONE")) {
+            throw new CloudException("detach volume operation failed");
+        }
 	}
 
 	@Override
@@ -205,9 +285,14 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 		vol.setProviderRegionId(provider.getContext().getRegionId());
 		vol.setType(VolumeType.HDD); 
 
-		if( json.has("name") ) {
-			vol.setProviderVolumeId(json.getString("name"));
+		if (json.has("id")) {
+            vol.setTag("providerId", json.getString("id"));
+        }
+
+        if( json.has("name") ) {
+            vol.setProviderVolumeId(json.getString("name"));
 			vol.setName(json.getString("name"));
+
 		}
 
 		if( json.has("description") ) {
@@ -251,6 +336,10 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 			}
 			vol.setCurrentState(state);
 		}
+
+        if (json.has("selfLink")) {
+            vol.setTag("selfLink", json.getString("selfLink"));
+        }
 
 		try {
 			Iterable<String> vmIds = provider.getComputeServices().getVirtualMachineSupport().getVirtualMachineWithVolume(vol.getProviderVolumeId());
@@ -433,5 +522,47 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
 			throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google volume does not contain meta data");
 	}
+
+    public String getDeviceNameForVolume(String volumeId, String serverId) throws CloudException, InternalException {
+        ProviderContext ctx = provider.getContext();
+        GoogleMethod method = new GoogleMethod(provider);
+        if (ctx == null) {
+            throw new InternalException("No context was specified for this request");
+        }
+
+        volumeId = volumeId.replace(" ", "").replace("-", "").replace(":", "");
+
+        JSONArray list = method.get(GoogleMethod.SERVER);
+
+        if( list == null ) {
+            return null;
+        }
+
+        for( int i=0; i<list.length(); i++ ) {
+            try {
+                JSONObject vmObject = list.getJSONObject(i);
+                if (vmObject.has("disks")) {
+                    JSONArray diskArray = vmObject.getJSONArray("disks");
+                    for (int j = 0; j < diskArray.length(); j++) {
+                        JSONObject disk = diskArray.getJSONObject(j);
+                        if (disk.has("source"))  {
+                            String diskId = GoogleMethod.getResourceName(disk.getString("source"), GoogleMethod.VOLUME);
+                            if (diskId.equals(volumeId))
+                                if (disk.has("deviceName")) {
+                                    return disk.getString("deviceName");
+                                }
+                        }
+                    }
+                }
+            }
+            catch( JSONException e ) {
+                logger.error("Failed to parse JSON: " + e.getMessage());
+                e.printStackTrace();
+                throw new CloudException(e);
+            }
+        }
+
+        return null;
+    }
 
 }
