@@ -229,6 +229,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 		if (state.equals("STOPPED") )  return VmState.STOPPED;
 		if (state.equals("STAGING") )  return VmState.PENDING;
 		if (state.equals("TERMINATED") )  return VmState.STOPPED;
+        if (state.equals("STOPPING")) return VmState.STOPPING;
 
 		if (logger.isDebugEnabled())
 			logger.warn("DEBUG: Unknown virtual machine state: " + state);
@@ -383,14 +384,12 @@ public class GoogleServerSupport extends AbstractVMSupport {
 	@Override
 	public Requirement identifyPasswordRequirement(Platform platform)
 			throws CloudException, InternalException {
-		// TODO Auto-generated method stub
-		return null;
+        return Requirement.NONE;
 	}
 
 	@Override
 	public Requirement identifyRootVolumeRequirement() throws CloudException,
 	InternalException {
-		// TODO Auto-generated method stub
 		return Requirement.NONE;
 	}
 
@@ -403,8 +402,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 	@Override
 	public Requirement identifyShellKeyRequirement(Platform platform)
 			throws CloudException, InternalException {
-		// TODO Auto-generated method stub
-		return null;
+        return Requirement.NONE;
 	}
 
 	@Override
@@ -496,7 +494,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 					JSONArray networkConfigArray = new JSONArray();
 					JSONObject networkObj = new JSONObject();
 					networkObj.put("name", nicConfig.nicId);
-					networkObj.append("network", method.getEndpoint(ctx, GoogleMethod.NETWORK) + "/" + createOpts.getVlanId());
+					networkObj.put("network", method.getEndpoint(ctx, GoogleMethod.NETWORK) + "/" + createOpts.getVlanId());
 
 					if (staticIp != null) {
 						JSONArray accessConfigArray = new JSONArray();
@@ -519,7 +517,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 				JSONArray networkConfigArray = new JSONArray();
 				JSONObject networkObj = new JSONObject();
 				networkObj.put("name", vlanId);
-				networkObj.append("network", method.getEndpoint(ctx, GoogleMethod.NETWORK) + "/" + vlanId);
+				networkObj.put("network", method.getEndpoint(ctx, GoogleMethod.NETWORK) + "/" + vlanId);
 
 				if (withLaunchOptions.getStaticIpIds() != null) {
 					String[] staticIps = withLaunchOptions.getStaticIpIds();
@@ -698,7 +696,12 @@ public class GoogleServerSupport extends AbstractVMSupport {
 	@Override
 	public Iterable<String> listFirewalls(String vmId)
 			throws InternalException, CloudException {
-		return Collections.emptyList();
+		ProviderContext ctx = provider.getContext();
+        if (ctx == null) {
+            throw new InternalException("No context set for this request");
+        }
+
+        return listFirewallsForServer(vmId);
 	}
 
 	static private HashMap<String,Map<Architecture,Collection<VirtualMachineProduct>>> productCache;
@@ -770,7 +773,6 @@ public class GoogleServerSupport extends AbstractVMSupport {
 
 		VirtualMachineProduct product = new VirtualMachineProduct();
 
-		// TODO: Check if the json output from the server has ephemeralDisks & the diskGb is 10
 		product.setRootVolumeSize(new Storage<Gigabyte>(10, Storage.GIGABYTE));
 		try {
 			if( json.has("id") ) {
@@ -796,6 +798,13 @@ public class GoogleServerSupport extends AbstractVMSupport {
 			if( json.has("description") ) {
 				product.setDescription(json.getString("description"));
 			}
+
+            if (json.has("ephemeralDisks")) {
+                JSONObject disk = json.getJSONArray("ephemeralDisks").getJSONObject(0);
+                if (disk.has("diskGb")) {
+                    product.setRootVolumeSize(new Storage<Gigabyte>(disk.getInt("diskGb"), Storage.GIGABYTE));
+                }
+            }
 			// TODO: Maximum persistent disks maximumPersistentDisks(16)  & maximumPersistentDisksSizeGB limits in GCE are not set to the products (Vinothini)
 		}
 		catch( JSONException e ) {
@@ -835,7 +844,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 
 		try {
 			if( json.has("name") ) {
-				id = json.getString("serverId");
+				id = json.getString("name");
 			}
 			if( json.has("status") ) {
 				state = toState(json.getString("status"));
@@ -969,19 +978,16 @@ public class GoogleServerSupport extends AbstractVMSupport {
 
 	@Override
 	public boolean supportsPauseUnpause(VirtualMachine vm) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean supportsStartStop(VirtualMachine vm) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean supportsSuspendResume(VirtualMachine vm) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -1054,7 +1060,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 				throw new CloudException(e);
 			}
 
-			JSONObject patchedResponse = method.patch(GoogleMethod.SERVER + "/" + vmId, jsonPayload);
+			JSONObject patchedResponse = method.post(GoogleMethod.SERVER + "/" + vmId+"/setMetadata", jsonPayload);
 
 			if( logger.isDebugEnabled() ) {
 				logger.debug("json reponse =" + patchedResponse.toString());
@@ -1073,7 +1079,7 @@ public class GoogleServerSupport extends AbstractVMSupport {
 					}
 				}
 			}
-			throw new CloudException("No servers were returned from the server as a result of the launch");
+			throw new CloudException("No servers were returned from the server as a result of the update");
 		}
 	}
 
@@ -1090,5 +1096,88 @@ public class GoogleServerSupport extends AbstractVMSupport {
 		throw new OperationNotSupportedException("Google does not support removing meta data from vms");
 
 	}
+
+    private Iterable<String> listFirewallsForServer(String vmId) throws CloudException, InternalException {
+        ProviderContext ctx = provider.getContext();
+        if (ctx == null) {
+            throw new InternalException("No context set for this request");
+        }
+
+        ArrayList<String> firewallIds = new ArrayList<String>();
+
+        GoogleMethod method = new GoogleMethod(provider);
+
+        vmId = vmId.replace(" ", "").replace("-", "").replace(":", "");
+
+        JSONArray list = method.get(GoogleMethod.SERVER  + "/" + vmId);
+
+        if( list == null ) {
+            return null;
+        }
+
+        ArrayList<String> tagIds = new ArrayList<String>();
+
+        for( int i=0; i<list.length(); i++ ) {
+            try {
+                JSONObject vm = list.getJSONObject(i);
+                if (vm.has("tags")) {
+                    JSONObject tags = vm.getJSONObject("tags");
+                    if (tags.has("items")) {
+                        JSONArray items = tags.getJSONArray("items");
+                        for (int j = 0; j < items.length(); j++) {
+                            String tag = items.getString(j);
+                            tagIds.add(tag);
+                        }
+                    }
+                }
+
+            }
+            catch( JSONException e ) {
+                logger.error("Failed to parse JSON: " + e.getMessage());
+                e.printStackTrace();
+                throw new CloudException(e);
+            }
+        }
+
+        //now we have the tags related to this vm we can check if any firewalls have a match
+        JSONArray array = method.get(GoogleMethod.FIREWALL);
+
+        if (array != null)   {
+            for (int i = 0; i < array.length(); i++) {
+                try {
+                    JSONObject firewall = array.getJSONObject(i);
+                    if (firewall.has("sourceTags")) {
+                        JSONArray sourceTags = firewall.getJSONArray("sourceTags");
+                        for (int firewallIndex = 0; firewallIndex < sourceTags.length(); firewallIndex++) {
+                            // for each source tag, we check for a match in our server tagIds
+                            if (tagIds.contains(sourceTags.getString(firewallIndex))) {
+                                if (firewall.has("name")) {
+                                    firewallIds.add(firewall.getString("name"));
+                                }
+                            }
+                        }
+                    }
+                    if (firewall.has("targetTags")) {
+                        JSONArray targetTags = firewall.getJSONArray("targetTags");
+                        for (int firewallIndex = 0; firewallIndex < targetTags.length(); firewallIndex++) {
+                            // for each target tag, we check for a match in our server tagIds
+                            if (tagIds.contains(targetTags.getString(firewallIndex))) {
+                                if (firewall.has("name")) {
+                                    firewallIds.add(firewall.getString("name"));
+                                }
+                            }
+                        }
+                    }
+                }
+                catch( JSONException e ) {
+                    logger.error("Failed to parse JSON: " + e.getMessage());
+                    e.printStackTrace();
+                    throw new CloudException(e);
+                }
+            }
+        }
+        return firewallIds;
+
+    }
 
 }

@@ -437,7 +437,7 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 							JSONArray tags = server.getJSONArray("tags");
 							for (int tagIndex = 0; tagIndex < tags.length(); tagIndex++) {
 								String tag = tags.getString(tagIndex);
-								if (!tag.equals(targetTag)) {
+								if (tag.equals(targetTag)) {
 									if (server.has("networkInterfaces")) {
 										JSONArray nwInterfaces = server.getJSONArray("networkInterfaces");
 										for (int l = 0; l < nwInterfaces.length(); l++) {
