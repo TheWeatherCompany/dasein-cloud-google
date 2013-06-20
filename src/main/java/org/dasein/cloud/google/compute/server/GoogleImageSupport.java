@@ -127,36 +127,40 @@ public class GoogleImageSupport  extends AbstractImageSupport {
 		if( json == null ) {
 			return null;
 		}
-		MachineImage image = new MachineImage();	
 
-		image.setProviderOwnerId(provider.getContext().getAccountNumber());
-		image.setSoftware("");
-		image.setProviderRegionId(provider.getContext().getRegionId());
-		image.setArchitecture(Architecture.I32);
+        String ownerId = provider.getContext().getAccountNumber();
+        String software = "";
+        String regionId = provider.getContext().getRegionId();
+        Architecture architecture = Architecture.I32;
 
-		image.setType(MachineImageType.STORAGE);
-		image.setStorageFormat(MachineImageFormat.RAW);
-		image.setCurrentState(MachineImageState.ACTIVE);
-		image.setImageClass(ImageClass.MACHINE);
+        MachineImageType imageType = MachineImageType.STORAGE;
+        MachineImageFormat format = MachineImageFormat.RAW;
+        MachineImageState state = MachineImageState.ACTIVE;
+        ImageClass imageClass = ImageClass.MACHINE;
+
+        String name = "", imageId = "", description = "", kernelImageId = "";
+        Platform platform = null;
+        long creationTimestamp = 0;
 		try {
 			if( json.has("name") ) {
-				image.setName(json.getString("name"));
-				image.setProviderMachineImageId(json.getString("name"));
-				image.setPlatform(Platform.guess(json.getString("name")));
+				name = json.getString("name");
+				imageId = json.getString("name");
+				platform = Platform.guess(json.getString("name"));
 			}
 			if( json.has("description") ) {
-				image.setDescription(json.getString("description"));
+				description = json.getString("description");
 			}
 			if( json.has("preferredKernel") ) {
-				image.setKernelImageId(json.getString("preferredKernel"));
+                String tmpId = GoogleMethod.getResourceName(json.getString("preferredKernel"), GoogleMethod.KERNEL);
+				kernelImageId = tmpId;
 			}
 
 			if( json.has("deprecated") ) {
 				JSONObject deprecated = json.getJSONObject("deprecated");
 				if (json.has("state")){
-					String state = deprecated.getString("state");
-					if(state.equals("DEPRECATED") && state.equals("OBSOLETE") && state.equals("DELETED"))
-						image.setCurrentState(MachineImageState.DELETED);
+					String tmpState = deprecated.getString("state");
+					if(tmpState.equals("DEPRECATED") && tmpState.equals("OBSOLETE") && tmpState.equals("DELETED"))
+						state = MachineImageState.DELETED;
 				}			
 			}	
 
@@ -164,7 +168,7 @@ public class GoogleImageSupport  extends AbstractImageSupport {
 				SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 				String value = json.getString("creationTimestamp");
 				try {
-					image.setCreationTimestamp(fmt.parse(value).getTime());
+					creationTimestamp = fmt.parse(value).getTime();
 				} 
 				catch( ParseException e ) {
 					logger.error(e);
@@ -173,17 +177,22 @@ public class GoogleImageSupport  extends AbstractImageSupport {
 				}				
 			}
 
-			if( image.getDescription() == null || image.getDescription().equals("") ) {
-				image.setDescription(image.getName() +  " (" + image.getArchitecture().toString() + " " + 
-						image.getPlatform().toString() + ")");
+			if( description == null || description.equals("") ) {
+				description = name +  " (" + architecture.toString() + " " +
+						platform.toString() + ")";
 			}
+
+            MachineImage img = MachineImage.getImageInstance(ownerId, regionId, imageId, imageClass, state, name, description, architecture, platform, format);
+            img.setKernelImageId(kernelImageId);
+            img.setType(imageType);
+            img.createdAt(creationTimestamp);
+            return img;
 		}
 		catch( JSONException e ) {
 			logger.error("Failed to parse JSON from the cloud: " + e.getMessage());
 			e.printStackTrace();
 			throw new CloudException(e);
 		}
-		return image;
 	}
 
 	@Override
@@ -241,6 +250,14 @@ public class GoogleImageSupport  extends AbstractImageSupport {
 	public Iterable<MachineImage> listImages(ImageFilterOptions options)
 			throws CloudException, InternalException {
 		GoogleMethod method = new GoogleMethod(provider);
+
+        //TODO ensure filtering string takes the following format
+        /* <field name> <comparison> <literal>  - where <comparison> is ne (not equal to) or eq (equal to)
+        If you wanted to use a complex regular expression like the following:
+        name eq '.*//*my_instance_[0-9]+'
+        You need to encode your special characters (including any quotes you used):
+        filter=name%20eq%20%27.%2A%2Fmy_instance_%5B0-9%5D%2B%27&
+        */
 
 		Param param = new Param("filter", options.getRegex());
 		JSONArray list = method.get(GoogleMethod.IMAGE, param); 
