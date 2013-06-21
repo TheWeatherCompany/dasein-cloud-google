@@ -322,14 +322,14 @@ public class GoogleNetworkSupport extends AbstractVLANSupport {
 		}
 
 		GoogleMethod method = new GoogleMethod(provider);
-		JSONArray array = method.get(GoogleMethod.NETWORK);
+		JSONArray array = method.get(GoogleMethod.NETWORK+ "/" +vlanId);
 		if (array != null)
 			for (int i = 0; i < array.length(); i++) {
 				try {
-					JSONObject network = (JSONObject) array.getJSONObject(i);
+					JSONObject network = array.getJSONObject(i);
 					if (network.has("name")) {
 						String name = network.getString("name");
-						if (name.equals((String) vlanId)) {
+						if (name.equals(vlanId)) {
 							VLAN vlan = toNetwork(network, ctx);
 							return vlan;
 						}
