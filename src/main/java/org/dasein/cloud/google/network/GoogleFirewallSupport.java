@@ -121,16 +121,19 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 			payload.put("allowed", allowed);
 
 			JSONObject response = method.patch(GoogleMethod.FIREWALL + "/" + firewallId , payload);
-			method.getOperationStatus(GoogleMethod.GLOBAL_OPERATION, response);
+
+			String status = method.getOperationStatus(GoogleMethod.GLOBAL_OPERATION, response);
+            if (status != null && status.equals("DONE")) {
+                FirewallRule firewallRule = FirewallRule.getInstance(null, firewallId, sourceEndpoint, direction, protocol, permission, destinationEndpoint, beginPort, endPort);
+                return firewallRule.getProviderRuleId();
+            }
+            return null;
 
 		} catch (JSONException e) {
 			e.printStackTrace();
 			logger.error("JSON conversion failed with error : " + e.getLocalizedMessage());
 			throw new CloudException(e);
 		}
-
-		FirewallRule rule = FirewallRule.getInstance(null, firewallId, sourceEndpoint, direction, protocol, permission, destinationEndpoint, beginPort, endPort);
-		return rule.getProviderRuleId();
 	}
 
 	@Override
@@ -213,9 +216,6 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 
 		JSONObject delResponse = method.delete(GoogleMethod.FIREWALL, new GoogleMethod.Param("id", firewallId.toLowerCase()));
 		method.getOperationStatus(GoogleMethod.GLOBAL_OPERATION, delResponse); //waits till operation moves to DONE state, else throws a timeout exception
-
-		return;
-
 	}
 
 	@Override
@@ -228,16 +228,16 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 		}
 
 		GoogleMethod method = new GoogleMethod(provider);
-		JSONArray array = method.get(GoogleMethod.FIREWALL);
+		JSONArray array = method.get(GoogleMethod.FIREWALL+ "/" + firewallId);
 
 		if (array != null)
 			for (int i = 0; i < array.length(); i++) {
 				try {
-					JSONObject firewall = (JSONObject) array.getJSONObject(i);
+					JSONObject firewall = array.getJSONObject(i);
 					if (firewall.has("name")) {
 						String name = firewall.getString("name");
 
-						if (name.equals((String) firewallId.toLowerCase())) {
+						if (name.equals(firewallId.toLowerCase())) {
 							Firewall fw = toFirewall(ctx, firewall);
 							return fw;
 						}
@@ -304,12 +304,12 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 		}
 
 		GoogleMethod method = new GoogleMethod(provider);
-		JSONArray array = method.get(GoogleMethod.FIREWALL);
+		JSONArray array = method.get(GoogleMethod.FIREWALL+ "/" + firewallId);
 
 		if (array != null)
 			for (int i = 0; i < array.length(); i++) {
 				try {
-					JSONObject firewall = (JSONObject) array.getJSONObject(i);
+					JSONObject firewall = array.getJSONObject(i);
 					if (firewall.has("name")) {
 						String name = firewall.getString("name");
 
@@ -372,10 +372,17 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 						for (int k = 0; k < ports.length(); k++) {
 							String port = ports.getString(k);
 							for (String source: sources) {
-
+                                int startPort = 0, endPort = 0;
 								// for every port source add the firewall rule
-								int startPort = Integer.parseInt(port);
-								int endPort = Integer.parseInt(port);
+                                try {
+                                    //port may have a range so catch exception
+                                    startPort = Integer.parseInt(port);
+                                    endPort = Integer.parseInt(port);
+                                }
+                                catch (NumberFormatException e) {
+                                     //ignore
+                                }
+
 								if (port.contains("-")) {
 									String[] temp = port.split("-");
 									startPort = Integer.parseInt(temp[0]);
@@ -512,7 +519,12 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	public Iterable<ResourceStatus> listFirewallStatus()
 			throws InternalException, CloudException {
 		Collection<ResourceStatus> firewallStatus = new ArrayList<ResourceStatus>();
-		firewallStatus.add(new ResourceStatus(provider.getContext().getRegionId(), true));
+
+        Collection<Firewall> firewalls = list();
+        for (Firewall fw : firewalls) {
+            firewallStatus.add(new ResourceStatus(fw.getProviderFirewallId(), true));
+        }
+
 		return firewallStatus;
 
 	}
@@ -598,7 +610,7 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	public void revoke(String firewallId, Direction direction, String source,
 			Protocol protocol, int beginPort, int endPort)
 					throws CloudException, InternalException {
-		revoke(firewallId,  direction, Permission.DENY, source, protocol, RuleTarget.getGlobal(firewallId), beginPort, endPort);
+		revoke(firewallId,  direction, Permission.ALLOW, source, protocol, RuleTarget.getGlobal(firewallId), beginPort, endPort);
 
 	}
 
@@ -724,7 +736,7 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 					}
 				}
 				JSONObject patchResponse = method.patch(GoogleMethod.FIREWALL + "/" + firewallId, tempFirewall);
-				method.getOperationStatus(GoogleMethod.GLOBAL_OPERATION, patchResponse);
+				method.getOperationStatus(GoogleMethod.GLOBAL_OPERATION, patchResponse); //waits till operation moves to DONE state, else throws a timeout exception
 
 			} catch (JSONException e) {
 				logger.error("Failed to parse JSON from the cloud: " + e.getMessage());

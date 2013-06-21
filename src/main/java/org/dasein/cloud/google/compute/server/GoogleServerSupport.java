@@ -466,6 +466,13 @@ public class GoogleServerSupport extends AbstractVMSupport {
 			vmname = vmname.replace(" ", "").replace("-", "").replace(":", "");
 			payload.put("name", vmname);
 
+            //create a default tag with server name for use with firewalls
+            JSONArray itemArray = new JSONArray();
+            itemArray.put(vmname);
+            JSONObject tags = new JSONObject();
+            tags.put("items", itemArray);
+            payload.put("tags", tags);
+
 			if ( withLaunchOptions.getMachineImageId() != null) {
 				String image = method.getEndpoint(ctx, GoogleMethod.IMAGE) + "/" +  withLaunchOptions.getMachineImageId();
 				payload.put("image", image);

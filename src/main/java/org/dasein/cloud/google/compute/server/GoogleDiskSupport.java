@@ -115,10 +115,7 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
                 throw new CloudException(e);
             }
 
-            String status = method.getOperationStatus(GoogleMethod.OPERATION, response);
-            if (status == null || !status.equals("DONE")) {
-                throw new CloudException("attach volume operation failed");
-            }
+            method.getOperationStatus(GoogleMethod.OPERATION, response);//waits till operation moves to DONE state, else throws a timeout exception
         }
 	}
 
@@ -217,10 +214,7 @@ public class GoogleDiskSupport extends AbstractVolumeSupport {
             throw new CloudException(e);
         }
 
-        String status = method.getOperationStatus(GoogleMethod.OPERATION, response);
-        if (status == null || !status.equals("DONE")) {
-            throw new CloudException("detach volume operation failed");
-        }
+        method.getOperationStatus(GoogleMethod.OPERATION, response);//waits till operation moves to DONE state, else throws a timeout exception
 	}
 
 	@Override
