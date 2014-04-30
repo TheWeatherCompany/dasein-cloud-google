@@ -4,7 +4,7 @@
 
 	<groupId>org.dasein</groupId>
 	<artifactId>dasein-cloud-google</artifactId>
-	<version>2013.11-gce-SNAPSHOT</version>
+	<version>2014.03.9-TWC-SNAPSHOT</version>
 
 	<name>Dasein Cloud Google</name>
 	<description>
@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>org.dasein</groupId>
 			<artifactId>dasein-cloud-core</artifactId>
-			<version>2014.07.1-SNAPSHOT</version>
+			<version>2014.07.1-TWC-SNAPSHOT</version>
 			<scope>compile</scope>
 			<optional>false</optional>
 		</dependency>
@@ -98,7 +98,7 @@
 		<dependency>
 			<groupId>org.dasein</groupId>
 			<artifactId>dasein-cloud-test</artifactId>
-			<version>2013.07-SNAPSHOT</version>
+			<version>2014.07.1-TWC-SNAPSHOT</version>
 			<scope>test</scope>
 			<optional>false</optional>
 		</dependency>
@@ -281,19 +281,53 @@
 				</executions>
 			</plugin>
 		</plugins>
+		 <extensions>
+          <extension>
+             <groupId>org.springframework.build.aws</groupId>
+             <artifactId>org.springframework.build.aws.maven</artifactId>
+             <version>3.0.0.RELEASE</version>
+          </extension>
+      </extensions>
+      <finalName>${project.artifactId}-${project.version}</finalName>
 	</build>
 
 	<distributionManagement>
-		<repository>
-			<id>sonatype-nexus-staging</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-			<uniqueVersion>false</uniqueVersion>
-		</repository>
-		<snapshotRepository>
-			<id>sonatype-nexus-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
+    <repository>
+         <id>maven-s3-release-repo</id>
+         <name>S3 Release Repository</name>
+         <url>s3://twc-grid-files/artifacts/release</url>
+    </repository>
+    <snapshotRepository>
+         <id>maven-s3-snapshot-repo</id>
+         <name>S3 Snapshot Repository</name>
+         <url>s3://twc-grid-files/artifacts/snapshot</url>
+    </snapshotRepository>
 	</distributionManagement>
+  
+  <repositories>
+        <repository>
+            <id>maven-s3-release-repo</id>
+            <name>S3 Release Repository</name>
+            <url>s3://twc-grid-files/artifacts/release</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>maven-s3-snapshot-repo</id>
+            <name>S3 Snapshot Repository</name>
+            <url>s3://twc-grid-files/artifacts/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 	<developers>
 		<developer>
