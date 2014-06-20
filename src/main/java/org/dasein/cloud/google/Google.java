@@ -19,122 +19,203 @@
 
 package org.dasein.cloud.google;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
-
-import org.apache.log4j.Logger;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.model.Operation;
 import org.dasein.cloud.AbstractCloud;
+import org.dasein.cloud.CloudException;
+import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.google.common.GoogleAuthorizationException;
+import org.dasein.cloud.google.common.NoContextException;
 import org.dasein.cloud.google.compute.GoogleCompute;
+import org.dasein.cloud.google.compute.server.OperationSupport;
 import org.dasein.cloud.google.network.GoogleNetwork;
+import org.dasein.cloud.google.util.GoogleAuthUtils;
+import org.dasein.cloud.google.util.GoogleExceptionUtils;
+import org.dasein.cloud.google.util.HttpTransportFactory;
+import org.dasein.cloud.util.APITrace;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.text.ParseException;
+import java.io.IOException;
 
 /**
  * Support for the Google API through Dasein Cloud.
- * <p>Created by George Reese: 12/06/2012 9:35 AM</p>
+ *
+ * <p> Created by George Reese: 12/06/2012 9:35 AM
+ *
  * @author George Reese
- * @version 2013.01 initial version
+ * @author igoonich
  * @since 2013.01
  */
 public class Google extends AbstractCloud {
-	static private final Logger logger = getLogger(Google.class);
 
-	public final static String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-	public final static String ISO8601_NO_MS_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-	
-	static private @Nonnull String getLastItem(@Nonnull String name) {
-		int idx = name.lastIndexOf('.');
+	/**
+	 * Application name for GCE dasein implementation
+	 */
+	private static final String GCE_DASIN_APPLICATION_NAME = "Google-Compute-Dasein-Implementation/1.0";
 
-		if( idx < 0 ) {
-			return name;
-		}
-		else if( idx == (name.length()-1) ) {
-			return "";
-		}
-		return name.substring(idx + 1);
+	private static final String GCE_PROVIDER_NAME = "Google";
+
+	/**
+	 * Google Compute Engine service locator object
+	 */
+	private volatile Compute googleCompute;
+
+	/**
+	 * Lock for lazy Google Compute Engine initialization
+	 */
+	private final Object googleComputeLock = new Object();
+
+
+	public Google() {
 	}
 
-	static public @Nonnull Logger getLogger(@Nonnull Class<?> cls) {
-		String pkg = getLastItem(cls.getPackage().getName());
+	/**
+	 * Initializes google compute engine root service
+	 *
+	 * @return google compute root service
+	 * @throws CloudException in case of any errors
+	 */
+	public Compute getGoogleCompute() throws CloudException {
+		// ensure that dasein context is initialized
+		if (!isInitialized()) {
+			throw new NoContextException();
+		}
 
-		if( pkg.equals("google") ) {
-			pkg = "";
+		// initialization of the google compute service locator
+		Compute result = googleCompute;
+		if (result == null) {
+			synchronized (googleComputeLock) {
+				result = googleCompute;
+				if (result == null) {
+					googleCompute = result = initializeGoogleCompute(getContext());
+				}
+			}
 		}
-		else {
-			pkg = pkg + ".";
-		}
-		return Logger.getLogger("dasein.cloud.google.std." + pkg + getLastItem(cls.getName()));
+
+		return result;
 	}
 
-	static public @Nonnull Logger getWireLogger(@Nonnull Class<?> cls) {
-		return Logger.getLogger("dasein.cloud.google.wire." + getLastItem(cls.getPackage().getName()) + "." + getLastItem(cls.getName()));
+	/**
+	 * Initializes google compute engine root service
+	 *
+	 * @param context provider context
+	 * @return google compute root service
+	 * @throws GoogleAuthorizationException in case authorization fails
+	 */
+	protected Compute initializeGoogleCompute(@Nonnull ProviderContext context) throws CloudException {
+		// authorization
+		Credential credential = GoogleAuthUtils.authorizeServiceAccount(context.getAccessPublic(), context.getAccessPrivate());
+
+		// create compute engine object
+		return new Compute.Builder(HttpTransportFactory.getDefaultInstance(), JacksonFactory.getDefaultInstance(), credential)
+				.setApplicationName(GCE_DASIN_APPLICATION_NAME)
+				.build();
 	}
 
-	public Google() { }
+	/**
+	 * Check that context is initialized
+	 *
+	 * @return {@code true} if context is initialized, {@code false} - otherwise
+	 */
+	public boolean isInitialized() {
+		return getContext() != null;
+	}
+
+	@Override
+	public @Nonnull GoogleDataCenters getDataCenterServices() {
+		// TODO: create only once
+		return new GoogleDataCenters(this);
+	}
+
+	@Override
+	public @Nonnull GoogleCompute getComputeServices() {
+		// TODO: create only once
+		return new GoogleCompute(this);
+	}
+
+	@Override
+	public @Nonnull GoogleNetwork getNetworkServices() {
+		// TODO: create only once
+		return new GoogleNetwork(this);
+	}
 
 	@Override
 	public @Nonnull String getCloudName() {
 		ProviderContext ctx = getContext();
 		String name = (ctx == null ? null : ctx.getCloudName());
-
-		return (name == null ? "Google" : name);
+		return (name == null ? GCE_PROVIDER_NAME : name);
 	}
-
-	@Override
-	public @Nonnull DataCenters getDataCenterServices() {
-		return new DataCenters(this);
-	}
-
-	@Override
-	public GoogleCompute getComputeServices() {
-		return new GoogleCompute(this);
-	}
-
-		@Override
-		public GoogleNetwork getNetworkServices() {
-			return new GoogleNetwork(this);
-		}
 
 	@Override
 	public @Nonnull String getProviderName() {
 		ProviderContext ctx = getContext();
 		String name = (ctx == null ? null : ctx.getProviderName());
-
-		return (name == null ? "Google" : name);
+		return (name == null ? GCE_PROVIDER_NAME : name);
 	}
 
-	@Override
-	public @Nullable String testContext() {
-		if( logger.isTraceEnabled() ) {
-			logger.trace("ENTER - " + Google.class.getName() + ".testContext()");
-		}
-		try {
-			ProviderContext ctx = getContext();
+    /**
+     * Submits remote operation to google cloud and waits for its completion
+     * @param operation remote operation to perform
+     * @param <T> operation
+     * @return completed operation
+     * @throws CloudException
+     * @throws InternalException
+     */
+    public <T> T submit(CloudUpdateOperation operation) throws CloudException, InternalException {
+        APITrace.begin(this, operation.getId());
+        try{
+            Operation job = operation.createOperation(this);
+            return (T) this.getOperationsSupport().waitUntilOperationCompletes(job);
+        } catch (IOException e) {
+            GoogleExceptionUtils.handleGoogleResponseError(e, false);
+        } finally {
+            APITrace.end();
+        }
 
-			if( ctx == null ) {
-				logger.warn("No context was provided for testing");
-				return null;
-			}
-			try {
-				// TODO: Go to Google and verify that the specified credentials in the context are correct
-				// return null if they are not
-				// return an account number if they are
-				return null;
-			}
-			catch( Throwable t ) {
-				logger.error("Error querying API key: " + t.getMessage());
-				t.printStackTrace();
-				return null;
-			}
-		}
-		finally {
-			if( logger.isTraceEnabled() ) {
-				logger.trace("EXIT - " + Google.class.getName() + ".textContext()");
-			}
-		}
-	}
+        return null;
+    }
+
+    /**
+     * Fetches remote entity from google cloud
+     * @param operation remote fetch operation
+     * @param <T> operation
+     * @return completed operation
+     * @throws CloudException
+     * @throws InternalException
+     */
+    public <T> T fetch(CloudOperation<T> operation) throws CloudException, InternalException {
+        APITrace.begin(this, operation.getId());
+        try{
+            return operation.createOperation(this);
+        } catch (IOException e) {
+            GoogleExceptionUtils.handleGoogleResponseError(e, false);
+        } finally {
+            APITrace.end();
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns region from current context
+     * @return region id
+     */
+    public String getRegionId() {
+        return getContext().getRegionId();
+    }
+
+    /**
+     * Returns project for current context
+     * @return project id
+     */
+    public String getProject() {
+        return getContext().getAccountNumber();
+    }
+
+    public OperationSupport getOperationsSupport() {
+        return getComputeServices().getOperationsSupport();
+    }
 }
