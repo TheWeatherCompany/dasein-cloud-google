@@ -147,7 +147,7 @@ public class GoogleDataCenters implements DataCenterServices {
 		}
 
 		if (getRegion(providerRegionId) == null) {
-			throw new IllegalArgumentException("Unsupported GCE region [" + providerRegionId + "]");
+			throw new IllegalArgumentException("Unsupported region [" + providerRegionId + "]");
 		}
 
 		try {
