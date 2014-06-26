@@ -13,6 +13,7 @@ import org.dasein.cloud.google.common.UnknownCloudException;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
@@ -80,6 +81,8 @@ public final class GoogleAuthUtils {
 			return credential;
 		} catch (HttpResponseException e) {
 			throw GoogleAuthorizationException.from(e, "Google failed to validate provided credentials");
+        } catch (GeneralSecurityException gse) {
+            throw new GoogleAuthorizationException("Google failed to validate provided credentials", gse);
 		} catch (Exception e) {
 			throw new UnknownCloudException("Authorization failed due to unexpected error", e);
 		}

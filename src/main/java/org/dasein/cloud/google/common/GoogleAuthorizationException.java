@@ -55,6 +55,6 @@ public class GoogleAuthorizationException extends CloudException {
 	 */
 	public static GoogleAuthorizationException from(HttpResponseException httpResponseException, String newMessage) {
 		return new GoogleAuthorizationException(newMessage, httpResponseException, httpResponseException.getStatusMessage(),
-				httpResponseException.getStatusCode());
+                HttpStatusCodes.STATUS_CODE_UNAUTHORIZED);
 	}
 }
