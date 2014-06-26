@@ -81,8 +81,8 @@ public final class GoogleAuthUtils {
 			return credential;
 		} catch (HttpResponseException e) {
 			throw GoogleAuthorizationException.from(e, "Google failed to validate provided credentials");
-        } catch (GeneralSecurityException gse) {
-            throw new GoogleAuthorizationException("Google failed to validate provided credentials", gse);
+		} catch (GeneralSecurityException gse) {
+			throw new GoogleAuthorizationException("Google failed to validate provided credentials", gse);
 		} catch (Exception e) {
 			throw new UnknownCloudException("Authorization failed due to unexpected error", e);
 		}
