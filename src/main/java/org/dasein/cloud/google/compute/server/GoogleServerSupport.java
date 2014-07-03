@@ -956,7 +956,16 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 		}
 	}
 
-	@Override
+    @Override
+    public void updateTags(@Nonnull String vmId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
+        if(asynchronous) {
+            throw new OperationNotSupportedException("Google does not support asynchronous update tags");
+        } else {
+            updateTags(vmId, tags);
+        }
+    }
+
+    @Override
 	public void updateTags(String vmId, Tag... tags) throws InternalException, CloudException {
 		Preconditions.checkNotNull(tags);
 		Preconditions.checkNotNull(vmId);
