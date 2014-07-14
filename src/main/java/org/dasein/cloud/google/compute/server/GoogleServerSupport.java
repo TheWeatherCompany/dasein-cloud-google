@@ -956,7 +956,30 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 		}
 	}
 
-	@Override
+    @Override
+    public void setTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        Instance instance = findInstance(vmId, getProvider().getContext().getAccountNumber(), getProvider().getContext().getRegionId());
+        if (instance == null) {
+            throw new IllegalArgumentException("Virtual machine with ID [" + vmId + "] doesn't exist");
+        }
+
+        List<Items> itemsList = new ArrayList<Items>();
+        for (Tag tag : tags) {
+            itemsList.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
+        }
+
+        instance.getMetadata().setItems(itemsList);
+        setGoogleMetadata(instance, instance.getMetadata());
+    }
+
+    @Override
+    public void setTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        for (String vmId : vmIds) {
+            setTags(vmId, tags);
+        }
+    }
+
+    @Override
 	public void updateTags(String vmId, Tag... tags) throws InternalException, CloudException {
 		Preconditions.checkNotNull(tags);
 		Preconditions.checkNotNull(vmId);
