@@ -82,6 +82,11 @@ public class GCEImageCapabilities extends AbstractCapabilities<Google> implement
     return false;
   }
 
+  @Override
+  public boolean supportsImageCopy() throws CloudException, InternalException {
+	return true;
+  }
+
   @Override public boolean supportsImageSharing() throws CloudException, InternalException{
     return true;
   }
