@@ -23,6 +23,7 @@ import com.google.api.client.repackaged.com.google.common.base.Preconditions;
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.model.FirewallList;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.collect.Iterables;
 import org.apache.commons.lang.StringUtils;
 import org.dasein.cloud.*;
 import org.dasein.cloud.google.Google;
@@ -41,8 +42,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-import static com.google.api.services.compute.model.Firewall.Allowed;
-
 /**
  * Implements the firewall services support in the Google API.
  *
@@ -59,43 +58,6 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	GoogleFirewallSupport(Google provider) {
 		super(provider);
 		this.provider = provider;
-	}
-
-	/**
-	 * Appends firewall rules.
-	 */
-	@Override
-	public String authorize(String firewallId, Direction direction, Permission permission, RuleTarget sourceEndpoint,
-							Protocol protocol, RuleTarget destinationEndpoint, int beginPort,
-							int endPort, int precedence) throws CloudException, InternalException {
-		Preconditions.checkNotNull(sourceEndpoint);
-		if (Permission.DENY.equals(permission)) {
-			throw new OperationNotSupportedException("GCE does not support DENY rules");
-		}
-		if (direction.equals(Direction.EGRESS)) {
-			throw new OperationNotSupportedException("GCE does not support EGRESS rules");
-		}
-
-		com.google.api.services.compute.model.Firewall googleFirewall = getGoogleFirewall(firewallId);
-		Compute compute = provider.getGoogleCompute();
-		try {
-            if (beginPort == -1 && endPort == -1) {
-                if (protocol == Protocol.TCP || protocol == Protocol.UDP) {
-                    beginPort = 0;
-                    endPort = 65535;
-                }
-            }
-			GoogleFirewalls.applyInboundFirewallRule(googleFirewall, sourceEndpoint, protocol, beginPort, endPort);
-			Compute.Firewalls.Update update = compute.firewalls().update(provider.getContext().getAccountNumber(), firewallId, googleFirewall);
-			update.execute();
-		} catch (IOException e) {
-			logger.error("Failed to patch Firewall : " + e.getMessage());
-			GoogleExceptionUtils.handleGoogleResponseError(e);
-		}
-
-		FirewallRule rule = FirewallRule.getInstance(null, firewallId, sourceEndpoint, direction, protocol, permission,
-				destinationEndpoint, beginPort, endPort);
-		return rule.getProviderRuleId();
 	}
 
 	/**
@@ -172,6 +134,8 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 			throw new NoContextException();
 		}
 
+        validateRules( options );
+
 		Compute compute = provider.getGoogleCompute();
 		Operation operation = null;
 		try {
@@ -190,6 +154,25 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 
 		return StringUtils.substringAfterLast(operation.getTargetLink(), "/");
 	}
+
+    private void validateRules(FirewallCreateOptions options) throws InternalException, CloudException {
+
+        if ( options.getAuthorizeRules() == null || options.getAuthorizeRules().size() == 0 ) {
+            return;
+        }
+
+        Iterable<Direction> supportedDirections = listSupportedDirections( options.getProviderVlanId() != null );
+        Iterable<Permission> supportedPermissions = listSupportedPermissions( options.getProviderVlanId() != null );
+
+        for ( FirewallRule rule : options.getAuthorizeRules() ) {
+            if ( !Iterables.contains(supportedDirections, rule.getDirection() ) ) {
+                throw new OperationNotSupportedException( "GCE does not support " + rule.getDirection() + " rules." );
+            }
+            if ( !Iterables.contains(supportedPermissions, rule.getPermission() ) ) {
+                throw new OperationNotSupportedException( "GCE does not support " + rule.getPermission() + " rules." );
+            }
+        }
+    }
 
 	@Nullable
 	@Override
@@ -388,9 +371,7 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	@Override
 	public Iterable<Direction> listSupportedDirections(boolean inVlan) throws InternalException, CloudException {
 		Collection<Direction> directions = new ArrayList<Direction>();
-		if (!inVlan) {
-			directions.add(Direction.INGRESS);
-		}
+        directions.add(Direction.INGRESS);
 
 		return directions;
 	}
@@ -398,10 +379,7 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	@Override
 	public Iterable<Permission> listSupportedPermissions(boolean inVlan) throws InternalException, CloudException {
 		Collection<Permission> permissions = new ArrayList<Permission>();
-		if (!inVlan) {
-			permissions.add(Permission.ALLOW);
-			//			permissions.add(Permission.DENY);
-		}
+        permissions.add(Permission.ALLOW);
 
 		return permissions;
 	}
@@ -425,129 +403,6 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
 	@Override
 	public void removeTags(String[] firewallIds, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google does not support firewall tags");
-	}
-
-	@Override
-	public void revoke(String providerFirewallRuleId) throws InternalException, CloudException {
-		FirewallRule firewallRule = FirewallRule.parseId(providerFirewallRuleId);
-		String source = providerFirewallRuleId.split(":")[3];
-
-		revoke(firewallRule.getFirewallId(), firewallRule.getDirection(), source, firewallRule.getProtocol(),
-				firewallRule.getStartPort(), firewallRule.getEndPort());
-	}
-
-	@Override
-	public void revoke(String firewallId, String source, Protocol protocol, int beginPort, int endPort)
-			throws CloudException, InternalException {
-
-		revoke(firewallId, Direction.INGRESS, source, protocol, beginPort, endPort);
-	}
-
-	@Override
-	public void revoke(String firewallId, Direction direction, String source, Protocol protocol, int beginPort, int endPort)
-			throws CloudException, InternalException {
-
-		revoke(firewallId, direction, Permission.DENY, source, protocol, RuleTarget.getGlobal(firewallId), beginPort, endPort);
-	}
-
-	@Override
-	public void revoke(String firewallId, Direction direction, Permission permission, String source, Protocol protocol,
-					   int beginPort, int endPort) throws CloudException, InternalException {
-
-		revoke(firewallId, direction, permission, source, protocol, RuleTarget.getGlobal(firewallId), beginPort, endPort);
-	}
-
-	@Override
-	public void revoke(String firewallId, Direction direction, Permission permission, String source, Protocol protocol,
-					   RuleTarget target, int beginPort, int endPort) throws CloudException, InternalException {
-		com.google.api.services.compute.model.Firewall googleFirewall = getGoogleFirewall(firewallId);
-		Compute compute = provider.getGoogleCompute();
-		Operation operation = null;
-		try {
-			// revoke the cidr
-			List<String> sourceRanges = googleFirewall.getSourceRanges();
-			if (sourceRanges != null && sourceRanges.size() > 0) {
-				List<String> sourceToSave = new ArrayList<String>();
-				for (String sourceValue : sourceRanges) {
-					if (!sourceValue.equals(source)) {
-						sourceToSave.add(sourceValue);
-					}
-				}
-				googleFirewall.setSourceRanges(sourceToSave);
-			}
-
-			//Setting default source range if it's null. Either source range or source tag has to be specified.
-			if (googleFirewall.getSourceRanges() == null ||
-					(googleFirewall.getSourceRanges() != null && googleFirewall.getSourceRanges().size() == 0)) {
-				googleFirewall.setSourceRanges(Arrays.asList(GoogleFirewalls.DEFAULT_SOURCE_RANGE));
-			}
-
-			List<String> sourceTags = googleFirewall.getSourceTags();
-			if (sourceTags != null && sourceTags.size() > 0) {
-				List<String> sourceTagsToSave = new ArrayList<String>();
-				for (String sourceTag : sourceTags) {
-					if (!sourceTag.equals(source)) {
-						sourceTagsToSave.add(sourceTag);
-					}
-				}
-				googleFirewall.setSourceTags(sourceTagsToSave);
-			}
-
-			List<String> targetTags = googleFirewall.getTargetTags();
-			if (targetTags != null && targetTags.size() > 0) {
-				List<String> targetTagsToSave = new ArrayList<String>();
-				for (String targetTag : targetTags) {
-					if (!targetTag.equals(target.getCidr())) {
-						targetTagsToSave.add(targetTag);
-					}
-				}
-				googleFirewall.setTargetTags(targetTagsToSave);
-			}
-
-			List<Allowed> allowedList = googleFirewall.getAllowed();
-			if (allowedList != null && allowedList.size() > 0) {
-				List<Allowed> allowedListToSave =
-						new ArrayList<Allowed>();
-				for (Allowed allowed : allowedList) {
-					if (StringUtils.isNotEmpty(allowed.getIPProtocol())) {
-						if (allowed.getIPProtocol().equals(protocol.name().toLowerCase())) {
-							List<String> ports = allowed.getPorts();
-							if (ports != null && ports.size() > 0) {
-								String bPort = String.valueOf(beginPort);
-								String toPort = endPort == -1 ? String.valueOf(beginPort) : String.valueOf(endPort);
-								List<String> portsToSave = new ArrayList<String>();
-								for (String portRange : allowed.getPorts()) {
-									if (!(portRange.equals(bPort) || portRange.equals(bPort + "-" + toPort))) {
-										portsToSave.add(portRange);
-									}
-								}
-								//If there is no port set in 'allowed' object, this object has to be removed
-								//as we cannot add a row when creating the new rule without setting ports.
-								if (portsToSave.size() > 0) {
-									allowed.setPorts(portsToSave);
-									allowedListToSave.add(allowed);
-								}
-							} else {
-								allowedListToSave.add(allowed);
-							}
-						} else {
-							//if protocol isn't the same we save it.
-							allowedListToSave.add(allowed);
-						}
-					}
-				}
-
-				//At least one allowed rule must be specified
-				googleFirewall.setAllowed(allowedListToSave);
-			}
-
-			Compute.Firewalls.Update update = compute.firewalls().update(provider.getContext().getAccountNumber(), firewallId, googleFirewall);
-			operation = update.execute();
-			operation.getStatus();
-		} catch (IOException e) {
-			logger.error("Failed to patch Firewall : " + e.getMessage());
-			GoogleExceptionUtils.handleGoogleResponseError(e);
-		}
 	}
 
 	@Override
