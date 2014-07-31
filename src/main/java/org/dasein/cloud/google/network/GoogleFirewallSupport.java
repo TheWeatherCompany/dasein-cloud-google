@@ -439,4 +439,9 @@ public class GoogleFirewallSupport extends AbstractFirewallSupport {
     public void setTags(@Nonnull String[] firewallIds, @Nonnull Tag... tags) throws CloudException, InternalException {
         throw new OperationNotSupportedException("Google firewall does not contain meta data");
     }
+
+    @Override
+    public Collection<? extends Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Google firewall does not contain meta data");
+    }
 }

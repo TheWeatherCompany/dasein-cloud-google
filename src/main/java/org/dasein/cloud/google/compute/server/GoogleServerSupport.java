@@ -957,26 +957,19 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 	}
 
     @Override
-    public void setTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
-        Instance instance = findInstance(vmId, getProvider().getContext().getAccountNumber(), getProvider().getContext().getRegionId());
+    public Collection<Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
+        Instance instance = findInstance(resourceId, getProvider().getContext().getAccountNumber(), getProvider().getContext().getRegionId());
         if (instance == null) {
-            throw new IllegalArgumentException("Virtual machine with ID [" + vmId + "] doesn't exist");
+            throw new IllegalArgumentException("Virtual machine with ID [" + resourceId + "] doesn't exist");
         }
 
-        List<Items> itemsList = new ArrayList<Items>();
-        for (Tag tag : tags) {
-            itemsList.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
+        Collection<Tag> result = new ArrayList<Tag>();
+        List<Items> items = instance.getMetadata().getItems();
+        for (Items item : items) {
+            result.add(new Tag(item.getKey(), item.getValue()));
         }
 
-        instance.getMetadata().setItems(itemsList);
-        setGoogleMetadata(instance, instance.getMetadata());
-    }
-
-    @Override
-    public void setTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
-        for (String vmId : vmIds) {
-            setTags(vmId, tags);
-        }
+        return result;
     }
 
     @Override
@@ -995,12 +988,27 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 	protected void updateTags(Instance instance, Tag... tags) throws InternalException, CloudException {
 		Metadata currentMetadata = instance.getMetadata();
 		List<Items> itemsList = currentMetadata.getItems() != null ? currentMetadata.getItems() : new ArrayList<Items>();
-		for (Tag tag : tags) {
-			itemsList.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
-		}
-		currentMetadata.setItems(itemsList);
+        List<Items> result = new ArrayList<Items>();
+        for (Tag tag : tags) {
+            result.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
+        }
+        for(Items item: itemsList) {
+            if(!isItemInTags(tags, item)) {
+                result.add(item);
+            }
+        }
+        currentMetadata.setItems(result);
 		setGoogleMetadata(instance, currentMetadata);
 	}
+
+    private boolean isItemInTags(Tag[] all, Items item) {
+        for (Tag tag : all) {
+            if (tag.getKey().equalsIgnoreCase(item.getKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 	/**
 	 * Updates metadata object for google instance

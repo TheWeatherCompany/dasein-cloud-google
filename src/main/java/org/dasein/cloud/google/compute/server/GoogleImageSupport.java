@@ -307,6 +307,11 @@ public class GoogleImageSupport extends AbstractImageSupport {
     }
 
     @Override
+    public Collection<? extends Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
+    }
+
+    @Override
 	public Iterable<MachineImage> searchPublicImages(ImageFilterOptions arg0) throws InternalException, CloudException {
 		String accountNumber = arg0.getAccountNumber();
 		Architecture architecture = arg0.getArchitecture();

@@ -46,10 +46,7 @@ import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.dasein.cloud.google.util.GoogleExceptionUtils.handleGoogleResponseError;
@@ -488,6 +485,11 @@ public class GoogleDiskSupport implements VolumeSupport {
 
     @Override
     public void setTags(@Nonnull String[] volumeIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Google volume does not contain metadata");
+    }
+
+    @Override
+    public Collection<? extends Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
         throw new OperationNotSupportedException("Google volume does not contain metadata");
     }
 
