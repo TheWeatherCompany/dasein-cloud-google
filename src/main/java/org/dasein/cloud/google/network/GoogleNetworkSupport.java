@@ -510,9 +510,4 @@ public class GoogleNetworkSupport extends AbstractVLANSupport {
         throw new OperationNotSupportedException("Internet gateways not supported.");
     }
 
-    @Override
-    public Collection<? extends Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Internet gateways not supported.");
-    }
-
 }

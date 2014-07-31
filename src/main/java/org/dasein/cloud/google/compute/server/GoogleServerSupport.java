@@ -957,22 +957,6 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 	}
 
     @Override
-    public Collection<Tag> getTags(@Nullable String resourceId) throws CloudException, InternalException {
-        Instance instance = findInstance(resourceId, getProvider().getContext().getAccountNumber(), getProvider().getContext().getRegionId());
-        if (instance == null) {
-            throw new IllegalArgumentException("Virtual machine with ID [" + resourceId + "] doesn't exist");
-        }
-
-        Collection<Tag> result = new ArrayList<Tag>();
-        List<Items> items = instance.getMetadata().getItems();
-        for (Items item : items) {
-            result.add(new Tag(item.getKey(), item.getValue()));
-        }
-
-        return result;
-    }
-
-    @Override
 	public void updateTags(String vmId, Tag... tags) throws InternalException, CloudException {
 		Preconditions.checkNotNull(tags);
 		Preconditions.checkNotNull(vmId);
