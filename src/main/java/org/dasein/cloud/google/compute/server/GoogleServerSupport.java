@@ -981,12 +981,27 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 	protected void updateTags(Instance instance, Tag... tags) throws InternalException, CloudException {
 		Metadata currentMetadata = instance.getMetadata();
 		List<Items> itemsList = currentMetadata.getItems() != null ? currentMetadata.getItems() : new ArrayList<Items>();
-		for (Tag tag : tags) {
-			itemsList.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
-		}
-		currentMetadata.setItems(itemsList);
+        List<Items> result = new ArrayList<Items>();
+        for (Tag tag : tags) {
+            result.add(new Items().setKey(tag.getKey()).setValue(tag.getValue()));
+        }
+        for(Items item: itemsList) {
+            if(!isItemInTags(tags, item)) {
+                result.add(item);
+            }
+        }
+        currentMetadata.setItems(result);
 		setGoogleMetadata(instance, currentMetadata);
 	}
+
+    private boolean isItemInTags(Tag[] all, Items item) {
+        for (Tag tag : all) {
+            if (tag.getKey().equalsIgnoreCase(item.getKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 	/**
 	 * Updates metadata object for google instance

@@ -465,13 +465,33 @@ public class GoogleNetworkSupport extends AbstractVLANSupport {
 		throw new OperationNotSupportedException("Subnets are not supported");
 	}
 
-	@Override
+    @Override
+    public void setSubnetTags(@Nonnull String subnetId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Subnets are not supported");
+    }
+
+    @Override
+    public void setSubnetTags(@Nonnull String[] subnetIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Subnets are not supported");
+    }
+
+    @Override
 	public void updateRoutingTableTags(@Nonnull String routingTableId, @Nonnull Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Routing tables are not supported");
 	}
 
     @Override
     public void updateRoutingTableTags(@Nonnull String routingTableId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Routing tables are not supported");
+    }
+
+    @Override
+    public void setRoutingTableTags(@Nonnull String routingTableId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Routing tables are not supported");
+    }
+
+    @Override
+    public void setRoutingTableTags(@Nonnull String[] routingTableIds, @Nonnull Tag... tags) throws CloudException, InternalException {
         throw new OperationNotSupportedException("Routing tables are not supported");
     }
 
@@ -492,6 +512,16 @@ public class GoogleNetworkSupport extends AbstractVLANSupport {
 
     @Override
     public void updateInternetGatewayTags(@Nonnull String internetGatewayId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Internet gateways not supported.");
+    }
+
+    @Override
+    public void setInternetGatewayTags(@Nonnull String internetGatewayId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Internet gateways not supported.");
+    }
+
+    @Override
+    public void setInternetGatewayTags(@Nonnull String[] internetGatewayIds, @Nonnull Tag... tags) throws CloudException, InternalException {
         throw new OperationNotSupportedException("Internet gateways not supported.");
     }
 
