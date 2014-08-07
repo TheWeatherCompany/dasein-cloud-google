@@ -287,11 +287,6 @@ public class GoogleImageSupport extends AbstractImageSupport {
 	}
 
     @Override
-    public void updateTags(@Nonnull String imageId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google image does not have meta data");
-    }
-
-    @Override
 	public void removeTags(String imageId, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google image does not have meta data");
 	}
@@ -300,16 +295,6 @@ public class GoogleImageSupport extends AbstractImageSupport {
 	public void removeTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google image does not have meta data");
 	}
-
-    @Override
-    public void setTags(@Nonnull String imageId, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-    }
-
-    @Override
-    public void setTags(@Nonnull String[] imageIds, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-    }
 
     @Override
 	public Iterable<MachineImage> searchPublicImages(ImageFilterOptions arg0) throws InternalException, CloudException {

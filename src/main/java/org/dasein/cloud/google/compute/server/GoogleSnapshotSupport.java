@@ -47,7 +47,6 @@ import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -238,21 +237,6 @@ public class GoogleSnapshotSupport extends AbstractSnapshotSupport {
 	public void updateTags(@Nonnull String[] snapshotIds, @Nonnull Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google snapshots does not contain metadata");
 	}
-
-    @Override
-    public void updateTags(@Nonnull String snapshotId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-    }
-
-    @Override
-    public void setTags(@Nonnull String snapshotId, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-    }
-
-    @Override
-    public void setTags(@Nonnull String[] snapshotIds, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-    }
 
     @Override
 	public void remove(String snapshotId) throws InternalException, CloudException {

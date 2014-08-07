@@ -26,9 +26,7 @@ import com.google.api.services.compute.model.ZoneList;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.dc.DataCenter;
-import org.dasein.cloud.dc.DataCenterServices;
-import org.dasein.cloud.dc.Region;
+import org.dasein.cloud.dc.*;
 import org.dasein.cloud.google.common.NoContextException;
 import org.dasein.cloud.google.util.model.GoogleRegions;
 import org.dasein.cloud.google.util.model.GoogleZones;
@@ -59,7 +57,11 @@ public class GoogleDataCenters implements DataCenterServices {
 		this.provider = provider;
 	}
 
-	@Override
+  @Nonnull @Override public DataCenterCapabilities getCapabilities() throws InternalException, CloudException {
+    return null;
+  }
+
+  @Override
 	@Nullable
 	public DataCenter getDataCenter(@Nonnull String dataCenterId) throws InternalException, CloudException {
 		APITrace.begin(provider, "getDataCenter");
@@ -216,5 +218,17 @@ public class GoogleDataCenters implements DataCenterServices {
 
 		throw new IllegalStateException();
 	}
+
+  @Nonnull @Override public Collection<ResourcePool> listResourcePools( String providerDataCenterId ) throws InternalException, CloudException {
+    return null;
+  }
+
+  @Nullable @Override public ResourcePool getResourcePool( String providerResourcePoolId ) throws InternalException, CloudException {
+    return null;
+  }
+
+  @Nonnull @Override public Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
+    return null;
+  }
 
 }
