@@ -470,14 +470,26 @@ public class GoogleNetworkSupport extends AbstractVLANSupport {
 		throw new OperationNotSupportedException("Routing tables are not supported");
 	}
 
-    @Override
+  @Override public void updateRoutingTableTags( @Nonnull String routingTableId, boolean asynchronous, @Nonnull Tag... tags ) throws CloudException, InternalException {
+    throw new OperationNotSupportedException("Internet gateways not supported.");
+  }
+
+  @Override
 	public void updateSubnetTags(@Nonnull String providerSubnetId, @Nonnull Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Subnets are not supported");
 	}
 
-    @Override
+  @Override public void updateSubnetTags( @Nonnull String subnetId, boolean asynchronous, @Nonnull Tag... tags ) throws CloudException, InternalException {
+    throw new OperationNotSupportedException("Internet gateways not supported.");
+  }
+
+  @Override
 	public void updateInternetGatewayTags(@Nonnull String internetGatewayId, @Nonnull Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Internet gateways not supported.");
 	}
+
+  @Override public void updateInternetGatewayTags( @Nonnull String internetGatewayId, boolean asynchronous, @Nonnull Tag... tags ) throws CloudException, InternalException {
+    throw new OperationNotSupportedException("Internet gateways not supported.");
+  }
 
 }
