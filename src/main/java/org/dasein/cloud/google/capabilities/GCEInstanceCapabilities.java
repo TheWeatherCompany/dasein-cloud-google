@@ -19,10 +19,7 @@
 
 package org.dasein.cloud.google.capabilities;
 
-import org.dasein.cloud.AbstractCapabilities;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.google.Google;
 import org.dasein.cloud.util.NamingConstraints;
@@ -122,6 +119,14 @@ public class GCEInstanceCapabilities extends AbstractCapabilities<Google> implem
     return NamingConstraints.getAlphaNumeric(1, 63);
   }
 
+  @Nullable @Override public VisibleScope getVirtualMachineVisibleScope() {
+    return null;
+  }
+
+  @Nullable @Override public VisibleScope getVirtualMachineProductVisibleScope() {
+    return null;
+  }
+
   @Nonnull @Override public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException{
     return Requirement.REQUIRED;
   }
@@ -194,5 +199,49 @@ public class GCEInstanceCapabilities extends AbstractCapabilities<Google> implem
     list.add(Architecture.I64);
     list.add(Architecture.I32);
     return list;
+  }
+
+  @Override public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
+    return false;
+  }
+
+  @Override public boolean supportsAlterVM() {
+    return false;
+  }
+
+  @Override public boolean supportsClone() {
+    return false;
+  }
+
+  @Override public boolean supportsPause() {
+    return false;
+  }
+
+  @Override public boolean supportsReboot() {
+    return false;
+  }
+
+  @Override public boolean supportsResume() {
+    return false;
+  }
+
+  @Override public boolean supportsStart() {
+    return false;
+  }
+
+  @Override public boolean supportsStop() {
+    return false;
+  }
+
+  @Override public boolean supportsSuspend() {
+    return false;
+  }
+
+  @Override public boolean supportsTerminate() {
+    return false;
+  }
+
+  @Override public boolean supportsUnPause() {
+    return false;
   }
 }

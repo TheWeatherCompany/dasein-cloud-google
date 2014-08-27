@@ -657,8 +657,12 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 		return Collections.emptyList();
 	}
 
-	@Override
-	public Iterable<VirtualMachineProduct> listProducts(Architecture architecture) throws InternalException, CloudException {
+  @Override
+  public Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException{
+    return listProducts(architecture, options.getDatacenterId());
+  }
+
+  public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture, String preferredDataCenterId) throws InternalException, CloudException {
 		if (!getProvider().isInitialized()) {
 			throw new NoContextException();
 		}
@@ -955,15 +959,6 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 			updateTags(vmId, tags);
 		}
 	}
-
-    @Override
-    public void updateTags(@Nonnull String vmId, boolean asynchronous, @Nonnull Tag... tags) throws CloudException, InternalException {
-        if(asynchronous) {
-            throw new OperationNotSupportedException("Google does not support asynchronous update tags");
-        } else {
-            updateTags(vmId, tags);
-        }
-    }
 
     @Override
 	public void updateTags(String vmId, Tag... tags) throws InternalException, CloudException {

@@ -19,14 +19,12 @@
 
 package org.dasein.cloud.google.capabilities;
 
-import org.dasein.cloud.AbstractCapabilities;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.google.Google;
 import org.dasein.cloud.network.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
@@ -45,6 +43,10 @@ public class GCEFirewallCapabilities extends AbstractCapabilities<Google> implem
 
   @Nonnull @Override public String getProviderTermForFirewall(@Nonnull Locale locale){
     return "firewall";
+  }
+
+  @Nullable @Override public VisibleScope getFirewallVisibleScope() {
+    return null;
   }
 
   @Nonnull @Override public Requirement identifyPrecedenceRequirement(boolean inVlan) throws InternalException, CloudException{

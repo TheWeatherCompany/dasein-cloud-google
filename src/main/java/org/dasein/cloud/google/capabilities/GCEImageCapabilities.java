@@ -19,14 +19,12 @@
 
 package org.dasein.cloud.google.capabilities;
 
-import org.dasein.cloud.AbstractCapabilities;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.google.Google;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
@@ -48,6 +46,10 @@ public class GCEImageCapabilities extends AbstractCapabilities<Google> implement
 
   @Nonnull @Override public String getProviderTermForCustomImage(@Nonnull Locale locale, @Nonnull ImageClass cls){
     return "image";
+  }
+
+  @Nullable @Override public VisibleScope getImageVisibleScope() {
+    return null;
   }
 
   @Nonnull @Override public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException{

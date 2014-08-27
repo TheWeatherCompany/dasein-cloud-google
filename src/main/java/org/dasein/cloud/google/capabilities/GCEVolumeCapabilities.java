@@ -28,6 +28,7 @@ import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.compute.VolumeCapabilities;
 import org.dasein.cloud.compute.VolumeFormat;
 import org.dasein.cloud.google.Google;
+import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.util.uom.storage.Gigabyte;
 import org.dasein.util.uom.storage.Storage;
 
@@ -54,12 +55,32 @@ public class GCEVolumeCapabilities extends AbstractCapabilities<Google> implemen
     return -2;
   }
 
+  @Override public int getMaximumVolumeProductIOPS() throws InternalException, CloudException {
+    return 0;
+  }
+
+  @Override public int getMinimumVolumeProductIOPS() throws InternalException, CloudException {
+    return 0;
+  }
+
+  @Override public int getMaximumVolumeSizeIOPS() throws InternalException, CloudException {
+    return 0;
+  }
+
+  @Override public int getMinimumVolumeSizeIOPS() throws InternalException, CloudException {
+    return 0;
+  }
+
   @Nullable @Override public Storage<Gigabyte> getMaximumVolumeSize() throws InternalException, CloudException{
     return new Storage<Gigabyte>(10000, Storage.GIGABYTE);
   }
 
   @Nonnull @Override public Storage<Gigabyte> getMinimumVolumeSize() throws InternalException, CloudException{
     return new Storage<Gigabyte>(1, Storage.GIGABYTE);
+  }
+
+  @Nonnull @Override public NamingConstraints getVolumeNamingConstraints() throws CloudException, InternalException {
+    return null;
   }
 
   @Nonnull @Override public String getProviderTermForVolume(@Nonnull Locale locale){

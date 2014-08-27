@@ -478,17 +478,17 @@ public class GoogleDiskSupport implements VolumeSupport {
 		throw new OperationNotSupportedException("Google volume does not contain metadata");
 	}
 
-    @Override
-    public void setTags(@Nonnull String volumeId, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google volume does not contain metadata");
-    }
+  @Override
+  public void setTags( @Nonnull String volumeId, @Nonnull Tag... tags ) throws CloudException, InternalException {
+    throw new OperationNotSupportedException("Google volume does not contain metadata");
+  }
 
-    @Override
-    public void setTags(@Nonnull String[] volumeIds, @Nonnull Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Google volume does not contain metadata");
-    }
+  @Override
+  public void setTags( @Nonnull String[] volumeIds, @Nonnull Tag... tags ) throws CloudException, InternalException {
+    throw new OperationNotSupportedException("Google volume does not contain metadata");
+  }
 
-    @Override
+  @Override
 	public String[] mapServiceAction(ServiceAction action) {
 		return new String[0];
 	}
