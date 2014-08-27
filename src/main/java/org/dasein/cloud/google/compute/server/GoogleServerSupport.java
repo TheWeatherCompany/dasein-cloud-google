@@ -960,7 +960,7 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 		}
 	}
 
-    @Override
+  @Override
 	public void updateTags(String vmId, Tag... tags) throws InternalException, CloudException {
 		Preconditions.checkNotNull(tags);
 		Preconditions.checkNotNull(vmId);
@@ -972,6 +972,12 @@ public class GoogleServerSupport extends AbstractVMSupport<Google> {
 
 		updateTags(instance, tags);
 	}
+
+  // TODO: implement asynchronous?
+  @Override
+  public void updateTags(String vmId, boolean asynchronous, Tag... tags) throws InternalException, CloudException {
+    updateTags(vmId, tags);
+  }
 
 	protected void updateTags(Instance instance, Tag... tags) throws InternalException, CloudException {
 		Metadata currentMetadata = instance.getMetadata();
