@@ -238,10 +238,6 @@ public class GoogleSnapshotSupport extends AbstractSnapshotSupport {
 		throw new OperationNotSupportedException("Google snapshots does not contain metadata");
 	}
 
-  @Override public void updateTags( @Nonnull String snapshotId, boolean asynchronous, @Nonnull Tag... tags ) throws CloudException, InternalException {
-    throw new OperationNotSupportedException("Google snapshots does not contain metadata");
-  }
-
   @Override
 	public void remove(String snapshotId) throws InternalException, CloudException {
 		checkNotNull(snapshotId, "snapshot ID is not provided");
