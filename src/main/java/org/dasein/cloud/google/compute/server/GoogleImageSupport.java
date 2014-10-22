@@ -286,10 +286,6 @@ public class GoogleImageSupport extends AbstractImageSupport {
 		throw new OperationNotSupportedException("Google image does not have meta data");
 	}
 
-  @Override public void updateTags( @Nonnull String imageId, boolean asynchronous, @Nonnull Tag... tags ) throws CloudException, InternalException {
-    throw new OperationNotSupportedException("Google image does not have meta data");
-  }
-
   @Override
 	public void removeTags(String imageId, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException("Google image does not have meta data");
