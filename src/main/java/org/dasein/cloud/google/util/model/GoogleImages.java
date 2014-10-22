@@ -10,7 +10,6 @@ import org.dasein.cloud.google.util.GoogleLogger;
 import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Set;
 
 /**
@@ -24,8 +23,8 @@ public final class GoogleImages {
 
 	private static final Logger logger = GoogleLogger.getLogger(GoogleImages.class);
 
-	/** Account for  images published by google */
-	public static final String GOOGLE_IMAGES_PROJECT = "google";
+	/** Account for  images published by windows */
+	public static final String WINDOWS_IMAGES_PROJECT = "windows-cloud";
 
 	/** Account for images published by centos */
 	public static final String CENTOS_IMAGES_PROJECT = "centos-cloud";
@@ -36,7 +35,7 @@ public final class GoogleImages {
 	/**
 	 * Immutable set of possible public project which contain public images
 	 */
-	private static final ImmutableSet<String> PUBLIC_IMAGES_PROJECTS = ImmutableSet.of(GOOGLE_IMAGES_PROJECT,
+	private static final ImmutableSet<String> PUBLIC_IMAGES_PROJECTS = ImmutableSet.of(WINDOWS_IMAGES_PROJECT,
 			CENTOS_IMAGES_PROJECT, DEBIAN_IMAGES_PROJECT);
 
 
