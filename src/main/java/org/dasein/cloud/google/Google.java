@@ -32,12 +32,17 @@ import org.dasein.cloud.google.common.NoContextException;
 import org.dasein.cloud.google.compute.GoogleCompute;
 import org.dasein.cloud.google.compute.server.OperationSupport;
 import org.dasein.cloud.google.network.GoogleNetwork;
+import org.dasein.cloud.google.quotas.GoogleQuotaSupport;
 import org.dasein.cloud.google.util.GoogleAuthUtils;
 import org.dasein.cloud.google.util.GoogleExceptionUtils;
 import org.dasein.cloud.google.util.HttpTransportFactory;
+import org.dasein.cloud.quotas.AbstractQuotaServices;
+import org.dasein.cloud.quotas.QuotaServices;
+import org.dasein.cloud.quotas.QuotaSupport;
 import org.dasein.cloud.util.APITrace;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
@@ -142,7 +147,18 @@ public class Google extends AbstractCloud {
 		return new GoogleNetwork(this);
 	}
 
-	@Override
+    @Nullable
+    @Override
+    public QuotaServices getQuotaServices() {
+        return new AbstractQuotaServices() {
+            @Override
+            public @Nullable QuotaSupport getQuotaSupport(String regionId) {
+                return new GoogleQuotaSupport(Google.this);
+            }
+        };
+    }
+
+    @Override
 	public @Nonnull String getCloudName() {
 		ProviderContext ctx = getContext();
 		String name = (ctx == null ? null : ctx.getCloudName());
